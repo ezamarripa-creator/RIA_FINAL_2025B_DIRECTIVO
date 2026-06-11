@@ -33,7 +33,6 @@
     min-height: 100vh;
   }
 
-  /* ── HEADER ── */
   header {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -74,7 +73,6 @@
   }
   #semestre-badge span { color: var(--accent2); font-weight: 600; }
 
-  /* ── SYNC BUTTON ── */
   .sync-btn {
     background: linear-gradient(135deg, #1f6feb, var(--accent2));
     border: none;
@@ -93,7 +91,6 @@
   .sync-btn:hover { opacity: .9; transform: translateY(-1px); background: linear-gradient(135deg, #2c7aef, #6ab0ff); }
   .sync-btn:active { transform: translateY(1px); }
 
-  /* ── FILTERS ── */
   #filter-bar {
     padding: 10px 28px;
     background: var(--surface);
@@ -115,10 +112,8 @@
   select:focus { border-color: var(--accent2); }
   .filter-group { display: flex; align-items: center; gap: 6px; }
 
-  /* ── MAIN GRID ── */
   main { padding: 22px 28px; }
 
-  /* ── KPI ROW ── */
   .kpi-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -153,7 +148,6 @@
   .kpi-card.red .kpi-value   { color: var(--danger); }
   .kpi-sub { font-size: 0.72rem; color: var(--muted); }
 
-  /* ── PARCIALES ROW ── */
   .parciales-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -178,7 +172,6 @@
   }
   .parcial-count { font-size: 0.72rem; color: var(--muted); margin-top: 3px; }
 
-  /* ── CHARTS GRID ── */
   .charts-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -202,7 +195,6 @@
     width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
   }
 
-  /* ── TOP TABLE ── */
   .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
   thead tr { border-bottom: 1px solid var(--border); }
@@ -220,14 +212,13 @@
   .pct-badge.medio  { background: rgba(210,153,34,.15); color: var(--warn); }
   .pct-badge.bajo   { background: rgba(63,185,80,.15); color: var(--accent3); }
 
-  /* ── EMPTY / LOADING STATES ── */
   #empty-state {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; min-height: 62vh; gap: 16px; text-align: center;
   }
   .empty-icon { font-size: 4rem; opacity: .3; }
   #empty-state h2 { font-size: 1.1rem; color: var(--muted); font-weight: 500; }
-  #empty-state p { font-size: 0.82rem; color: var(--muted); opacity: .7; max-width: 320px; }
+  #empty-state p { font-size: 0.82rem; color: var(--muted); opacity: .7; max-width: 380px; }
   
   .sync-hint-btn {
     background: var(--surface2);
@@ -266,17 +257,20 @@
     color: white; font-size: 0.8rem; z-index: 1000;
     border-left: 4px solid #ffb4a2; box-shadow: 0 6px 14px black;
   }
+  .info-toast {
+    background: #58a6ffcc;
+    border-left-color: #a0d0ff;
+  }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <div class="logo-area">
     <div class="logo-badge">C</div>
     <div class="header-titles">
       <h1>Cuadro de Mando Integral · Índices de Reprobación</h1>
-      <p>COBAED — Sistema de Evaluación RIA · Datos en la nube</p>
+      <p>COBAED — Sistema de Evaluación RIA · Datos desde Google Sheets</p>
     </div>
   </div>
   <div class="header-right">
@@ -285,7 +279,6 @@
   </div>
 </header>
 
-<!-- FILTER BAR -->
 <div id="filter-bar" style="display:none;">
   <div class="filter-group">
     <label>Plantel</label>
@@ -313,137 +306,64 @@
   </div>
 </div>
 
-<!-- EMPTY STATE (aparece mientras no hay datos cargados) -->
 <div id="empty-state">
-  <div class="empty-icon">☁️📊</div>
-  <h2>Cargando desde la nube...</h2>
-  <p>Conectando con archivo compartido de Google Drive.<br>Si la carga falla, usa el botón "Sincronizar".</p>
+  <div class="empty-icon">📊☁️</div>
+  <h2>Conectando con Google Sheets</h2>
+  <p>Cargando datos desde el archivo compartido.<br>Si la carga falla, haz clic en "Sincronizar".</p>
   <button id="empty-sync-btn" class="sync-hint-btn">🔄 Sincronizar ahora</button>
 </div>
 
-<!-- DASHBOARD PRINCIPAL -->
 <div id="dashboard">
 <main>
-
-  <!-- KPIs -->
   <div class="kpi-row">
-    <div class="kpi-card blue">
-      <div class="kpi-label">Matrícula</div>
-      <div class="kpi-value" id="kpi-matricula">—</div>
-      <div class="kpi-sub">alumnos únicos</div>
-    </div>
-    <div class="kpi-card orange">
-      <div class="kpi-label">Materias Evaluadas</div>
-      <div class="kpi-value" id="kpi-materias">—</div>
-      <div class="kpi-sub">registros totales</div>
-    </div>
-    <div class="kpi-card red">
-      <div class="kpi-label">Reprobación Final</div>
-      <div class="kpi-value" id="kpi-rep-pct">—</div>
-      <div class="kpi-sub" id="kpi-rep-abs">materias reprobadas</div>
-    </div>
-    <div class="kpi-card green">
-      <div class="kpi-label">Aprobación Final</div>
-      <div class="kpi-value" id="kpi-apr-pct">—</div>
-      <div class="kpi-sub" id="kpi-apr-abs">materias aprobadas</div>
-    </div>
-    <div class="kpi-card warn">
-      <div class="kpi-label">Planteles</div>
-      <div class="kpi-value" id="kpi-planteles">—</div>
-      <div class="kpi-sub">planteles activos</div>
-    </div>
+    <div class="kpi-card blue"><div class="kpi-label">Matrícula</div><div class="kpi-value" id="kpi-matricula">—</div><div class="kpi-sub">alumnos únicos</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">Materias Evaluadas</div><div class="kpi-value" id="kpi-materias">—</div><div class="kpi-sub">registros totales</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Reprobación Final</div><div class="kpi-value" id="kpi-rep-pct">—</div><div class="kpi-sub" id="kpi-rep-abs">materias reprobadas</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Aprobación Final</div><div class="kpi-value" id="kpi-apr-pct">—</div><div class="kpi-sub" id="kpi-apr-abs">materias aprobadas</div></div>
+    <div class="kpi-card warn"><div class="kpi-label">Planteles</div><div class="kpi-value" id="kpi-planteles">—</div><div class="kpi-sub">planteles activos</div></div>
   </div>
 
-  <!-- PARCIALES -->
   <div class="parciales-row" id="parciales-row">
-    <div class="parcial-card">
-      <div class="parcial-title">Parcial 1 <span style="color:var(--muted);font-size:.65rem">(< 6)</span></div>
-      <div class="parcial-pct" id="p1-pct">—</div>
-      <div class="parcial-count" id="p1-cnt">—</div>
-    </div>
-    <div class="parcial-card">
-      <div class="parcial-title">Parcial 2 <span style="color:var(--muted);font-size:.65rem">(< 6)</span></div>
-      <div class="parcial-pct" id="p2-pct">—</div>
-      <div class="parcial-count" id="p2-cnt">—</div>
-    </div>
-    <div class="parcial-card">
-      <div class="parcial-title">Parcial 3 <span style="color:var(--muted);font-size:.65rem">(< 6)</span></div>
-      <div class="parcial-pct" id="p3-pct">—</div>
-      <div class="parcial-count" id="p3-cnt">—</div>
-    </div>
-    <div class="parcial-card">
-      <div class="parcial-title">Semestral <span style="color:var(--muted);font-size:.65rem">(< 0.9)</span></div>
-      <div class="parcial-pct" id="ps-pct">—</div>
-      <div class="parcial-count" id="ps-cnt">—</div>
-    </div>
-    <div class="parcial-card">
-      <div class="parcial-title">Proyecto Int. <span style="color:var(--muted);font-size:.65rem">(< 1.5)</span></div>
-      <div class="parcial-pct" id="pp-pct">—</div>
-      <div class="parcial-count" id="pp-cnt">—</div>
-    </div>
-    <div class="parcial-card">
-      <div class="parcial-title">Final <span style="color:var(--muted);font-size:.65rem">(< 6)</span></div>
-      <div class="parcial-pct" id="pf-pct" style="color:var(--danger)">—</div>
-      <div class="parcial-count" id="pf-cnt">—</div>
-    </div>
+    <div class="parcial-card"><div class="parcial-title">Parcial 1 <span style="color:var(--muted);font-size:.65rem">(< 6)</span></div><div class="parcial-pct" id="p1-pct">—</div><div class="parcial-count" id="p1-cnt">—</div></div>
+    <div class="parcial-card"><div class="parcial-title">Parcial 2 <span style="color:var(--muted);font-size:.65rem">(< 6)</span></div><div class="parcial-pct" id="p2-pct">—</div><div class="parcial-count" id="p2-cnt">—</div></div>
+    <div class="parcial-card"><div class="parcial-title">Parcial 3 <span style="color:var(--muted);font-size:.65rem">(< 6)</span></div><div class="parcial-pct" id="p3-pct">—</div><div class="parcial-count" id="p3-cnt">—</div></div>
+    <div class="parcial-card"><div class="parcial-title">Semestral <span style="color:var(--muted);font-size:.65rem">(< 0.9)</span></div><div class="parcial-pct" id="ps-pct">—</div><div class="parcial-count" id="ps-cnt">—</div></div>
+    <div class="parcial-card"><div class="parcial-title">Proyecto Int. <span style="color:var(--muted);font-size:.65rem">(< 1.5)</span></div><div class="parcial-pct" id="pp-pct">—</div><div class="parcial-count" id="pp-cnt">—</div></div>
+    <div class="parcial-card"><div class="parcial-title">Final <span style="color:var(--muted);font-size:.65rem">(< 6)</span></div><div class="parcial-pct" id="pf-pct" style="color:var(--danger)">—</div><div class="parcial-count" id="pf-cnt">—</div></div>
   </div>
 
-  <!-- CHARTS ROW 1 -->
   <div class="charts-grid">
-    <div class="chart-card">
-      <div class="chart-title"><span class="dot" style="background:var(--danger)"></span>Reprobación por Plantel (%)</div>
-      <div id="chart-plantel" style="height:340px;"></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title"><span class="dot" style="background:var(--accent2)"></span>Distribución de Calificaciones Finales</div>
-      <div id="chart-dist" style="height:340px;"></div>
-    </div>
+    <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--danger)"></span>Reprobación por Plantel (%)</div><div id="chart-plantel" style="height:340px;"></div></div>
+    <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent2)"></span>Distribución de Calificaciones Finales</div><div id="chart-dist" style="height:340px;"></div></div>
   </div>
 
-  <!-- CHARTS ROW 2 -->
   <div class="charts-grid">
-    <div class="chart-card">
-      <div class="chart-title"><span class="dot" style="background:var(--warn)"></span>Top 10 Materias con Mayor Reprobación</div>
-      <div id="chart-materias" style="height:340px;"></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title"><span class="dot" style="background:var(--accent3)"></span>Reprobación por Semestre y Turno</div>
-      <div id="chart-semturno" style="height:340px;"></div>
-    </div>
+    <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--warn)"></span>Top 10 Materias con Mayor Reprobación</div><div id="chart-materias" style="height:340px;"></div></div>
+    <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent3)"></span>Reprobación por Semestre y Turno</div><div id="chart-semturno" style="height:340px;"></div></div>
   </div>
 
-  <!-- BOTTOM: TABLE + GENDER CHART -->
   <div class="charts-grid">
-    <div class="chart-card">
-      <div class="chart-title"><span class="dot" style="background:var(--accent)"></span>Planteles con Mayor Riesgo</div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Plantel</th><th>Total</th><th>Reprobados</th><th>% Rep.</th><th>Riesgo</th></tr>
-          </thead>
-          <tbody id="tabla-planteles"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title"><span class="dot" style="background:#bc8cff"></span>Reprobación por Género</div>
-      <div id="chart-genero" style="height:300px;"></div>
-    </div>
+    <div class="chart-card"><div class="chart-title"><span class="dot" style="background:var(--accent)"></span>Planteles con Mayor Riesgo</div><div class="table-wrap"><table><thead><tr><th>#</th><th>Plantel</th><th>Total</th><th>Reprobados</th><th>% Rep.</th><th>Riesgo</th></tr></thead><tbody id="tabla-planteles"></tbody></table></div></div>
+    <div class="chart-card"><div class="chart-title"><span class="dot" style="background:#bc8cff"></span>Reprobación por Género</div><div id="chart-genero" style="height:300px;"></div></div>
   </div>
-
 </main>
 </div>
 
 <div id="loading" class="loading-overlay" style="display:none;">
   <div class="spinner"></div>
-  <p>Obteniendo datos desde Google Drive...</p>
+  <p>Obteniendo datos desde Google Sheets...</p>
 </div>
 
 <script>
-// ================= CONFIGURACIÓN =================
-const GOOGLE_DRIVE_FILE_ID = "10SdlIRAa9Er4VzYrzbMd8vc_A0xCYCE5";
-let rawData = [];            // almacena datos originales (filtrados posteriormente)
-let currentDataset = [];     // versión filtrada actual
+// CONFIGURACIÓN - Usar Google Sheets CSV export (más confiable que Drive directo)
+// El ID del archivo: 10SdlIRAa9Er4VzYrzbMd8vc_A0xCYCE5
+// Convertimos a URL de exportación CSV pública
+const GOOGLE_SHEETS_ID = "10SdlIRAa9Er4VzYrzbMd8vc_A0xCYCE5";
+// URL para exportar como CSV (funciona si el archivo está compartido como "Cualquier persona con el enlace puede ver")
+const CSV_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/export?format=csv&gid=0`;
+
+let rawData = [];
+let currentDataset = [];
 
 const PLOTLY_CONFIG = { responsive: true, displayModeBar: false };
 const BG = 'rgba(0,0,0,0)';
@@ -451,58 +371,61 @@ const GRID = '#30363d';
 const TEXT = '#8b949e';
 const fontFamily = 'Inter, system-ui, sans-serif';
 
-// Helper mostrar/ocultar loading
 function showLoading(show) {
   document.getElementById('loading').style.display = show ? 'flex' : 'none';
 }
 
-// Mostrar error temporal
 function showError(msg) {
   let toast = document.createElement('div');
   toast.className = 'error-toast';
-  toast.innerText = msg;
+  toast.innerText = '⚠️ ' + msg;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 5000);
 }
 
-// Descargar archivo desde Drive usando ID (exportando como excel)
-async function fetchExcelFromDrive(fileId) {
-  const url = `https://drive.google.com/uc?export=download&id=${fileId}`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`No se pudo obtener el archivo (HTTP ${response.status})`);
-  const arrayBuffer = await response.arrayBuffer();
-  return arrayBuffer;
+function showInfo(msg) {
+  let toast = document.createElement('div');
+  toast.className = 'error-toast info-toast';
+  toast.innerText = 'ℹ️ ' + msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
 }
 
-// Procesar el ArrayBuffer con SheetJS
-function processExcelData(arrayBuffer) {
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+// Cargar CSV desde Google Sheets (sin problemas de CORS)
+async function loadCSVFromGoogleSheets() {
+  const response = await fetch(CSV_EXPORT_URL);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} - No se pudo acceder al archivo. Verifica que esté compartido como "Cualquier persona con el enlace puede ver".`);
+  }
+  const csvText = await response.text();
+  // Convertir CSV a JSON usando SheetJS
+  const workbook = XLSX.read(csvText, { type: 'string' });
   const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
   const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: null });
-  if (!jsonData || jsonData.length === 0) throw new Error("El archivo Excel está vacío o no tiene datos legibles.");
+  if (!jsonData || jsonData.length === 0) {
+    throw new Error("El archivo está vacío o no tiene datos legibles.");
+  }
   return jsonData;
 }
 
-// Carga principal desde Drive: actualiza rawData, refresca UI
 async function loadDataFromDrive() {
   showLoading(true);
   try {
-    const buffer = await fetchExcelFromDrive(GOOGLE_DRIVE_FILE_ID);
-    const data = processExcelData(buffer);
+    const data = await loadCSVFromGoogleSheets();
     if (!data.length) throw new Error("No se encontraron registros en el archivo.");
     rawData = data;
     currentDataset = [...rawData];
-    // Actualizar selects y renderizar dashboard
     populateFilters(rawData);
     renderAll(currentDataset);
-    // Cambiar UI a dashboard visible
+    
     document.getElementById('empty-state').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('filter-bar').style.display = 'flex';
+    
+    showInfo(`✅ Datos cargados correctamente: ${data.length} registros`);
   } catch (err) {
     console.error(err);
-    showError(`Error de sincronización: ${err.message}. Verifica que el archivo compartido esté accesible.`);
-    // Si no hay datos, mostramos empty state con opción reintentar
+    showError(`Error de sincronización: ${err.message}`);
     if (!rawData || rawData.length === 0) {
       document.getElementById('dashboard').style.display = 'none';
       document.getElementById('empty-state').style.display = 'flex';
@@ -513,17 +436,15 @@ async function loadDataFromDrive() {
   }
 }
 
-// Poblar filtros dinámicos
 function populateFilters(data) {
-  const planteles = [...new Set(data.map(r => r.plantel))].filter(Boolean).sort();
-  const semestres = [...new Set(data.map(r => r.semestre))].filter(Boolean).sort();
+  const planteles = [...new Set(data.map(r => r.plantel).filter(Boolean))].sort();
+  const semestres = [...new Set(data.map(r => r.semestre).filter(Boolean))].sort();
   const fp = document.getElementById('f-plantel');
   fp.innerHTML = '<option value="">Todos</option>' + planteles.map(p => `<option value="${p}">${p}</option>`).join('');
   const fs = document.getElementById('f-semestre');
   fs.innerHTML = '<option value="">Todos</option>' + semestres.map(s => `<option value="${s}">${s}°</option>`).join('');
 }
 
-// Aplicar filtros activos
 function applyFilters() {
   if (!rawData.length) return;
   const fp = document.getElementById('f-plantel').value;
@@ -539,7 +460,6 @@ function applyFilters() {
   renderAll(currentDataset);
 }
 
-// Detección de columnas flexible
 function detectCols(row) {
   const keys = Object.keys(row);
   const find = (...cands) => keys.find(k => cands.some(c => k.toLowerCase().includes(c))) || null;
@@ -569,7 +489,6 @@ function groupBy(arr, key) {
   }, {});
 }
 
-// Renderización completa
 function renderAll(data) {
   if (!data.length) return;
   const COL = detectCols(data[0] || {});
@@ -578,8 +497,7 @@ function renderAll(data) {
     return;
   }
 
-  // Semestre cabecera (semestre único del dataset original si no hay filtro)
-  const allSem = [...new Set(rawData.map(r => r.semestre))].filter(Boolean).sort();
+  const allSem = [...new Set(rawData.map(r => r.semestre).filter(Boolean))].sort();
   document.getElementById('hdr-semestre').textContent = allSem.join(', ') + '°';
 
   const total = data.length;
@@ -596,14 +514,13 @@ function renderAll(data) {
   document.getElementById('kpi-apr-abs').textContent = aprobados.length.toLocaleString('es-MX') + ' materias';
   document.getElementById('kpi-planteles').textContent = plantUniq;
 
-  // Parciales
   const parcCols = [
-    { id: 'p1', col: COL.cal1,      threshold: 6 },
-    { id: 'p2', col: COL.cal2,      threshold: 6 },
-    { id: 'p3', col: COL.cal3,      threshold: 6 },
+    { id: 'p1', col: COL.cal1, threshold: 6 },
+    { id: 'p2', col: COL.cal2, threshold: 6 },
+    { id: 'p3', col: COL.cal3, threshold: 6 },
     { id: 'ps', col: COL.semestral, threshold: 0.8 },
-    { id: 'pp', col: COL.proyecto,  threshold: 1.3 },
-    { id: 'pf', col: COL.final,     threshold: 6 },
+    { id: 'pp', col: COL.proyecto, threshold: 1.3 },
+    { id: 'pf', col: COL.final, threshold: 6 },
   ];
   for (const { id, col, threshold } of parcCols) {
     if (!col) continue;
@@ -613,7 +530,6 @@ function renderAll(data) {
     document.getElementById(`${id}-cnt`).textContent = rep.length.toLocaleString('es-MX') + ' / ' + valid.length.toLocaleString('es-MX');
   }
 
-  // Gráfica plantel
   const byPlantel = groupBy(data, COL.plantel);
   const plantelData = Object.entries(byPlantel).map(([name, rows]) => {
     const rep = rows.filter(r => parseFloat(r[COL.final]) < 6).length;
@@ -626,11 +542,9 @@ function renderAll(data) {
     x: plantelData.map(d => +d.pctVal.toFixed(2)),
     marker: { color: plantelData.map(d => d.pctVal >= 10 ? '#f85149' : d.pctVal >= 5 ? '#d29922' : '#3fb950') },
     text: plantelData.map(d => d.pctVal.toFixed(1) + '%'),
-    textposition: 'outside',
-    hovertemplate: '<b>%{y}</b><br>Reprobación: %{x:.1f}%<extra></extra>'
+    textposition: 'outside'
   }], { paper_bgcolor: BG, plot_bgcolor: BG, margin: { l: 150, r: 50, t: 10, b: 30 }, xaxis: { gridcolor: GRID, color: TEXT, ticksuffix: '%' }, yaxis: { color: TEXT, automargin: true }, font: { family: fontFamily } });
 
-  // Distribución calificaciones finales
   const finalVals = data.map(r => parseFloat(r[COL.final])).filter(v => !isNaN(v));
   const counts = {5:0,6:0,7:0,8:0,9:0,10:0};
   finalVals.forEach(v => { const k = Math.round(v); if (counts[k] !== undefined) counts[k]++; });
@@ -640,7 +554,6 @@ function renderAll(data) {
     text: Object.values(counts).map(c => c.toLocaleString('es-MX')), textposition: 'outside'
   }], { paper_bgcolor: BG, plot_bgcolor: BG, xaxis: { title: 'Calificación', gridcolor: GRID }, yaxis: { gridcolor: GRID }, font: { family: fontFamily } });
 
-  // Top materias reprobadas
   const byMateria = groupBy(reprobados, COL.materia);
   const materiaTop = Object.entries(byMateria).map(([name, rows]) => ({ name, count: rows.length })).sort((a,b)=>b.count-a.count).slice(0,10);
   Plotly.newPlot('chart-materias', [{
@@ -648,8 +561,7 @@ function renderAll(data) {
     marker: { color: '#d29922' }, text: materiaTop.map(d=>d.count), textposition: 'outside'
   }], { paper_bgcolor: BG, plot_bgcolor: BG, margin: { l: 230 }, xaxis: { gridcolor: GRID }, yaxis: { automargin: true }, font: { family: fontFamily } });
 
-  // Semestre vs turno
-  const semList = [...new Set(data.map(r=>r[COL.semestre]))].filter(Boolean).sort();
+  const semList = [...new Set(data.map(r=>r[COL.semestre]).filter(Boolean))].sort();
   const tracesTurno = ['1','2'].map(turn => ({
     name: turn === '1' ? 'Matutino' : 'Vespertino', type: 'bar',
     x: semList.map(s => s+'°'),
@@ -658,7 +570,6 @@ function renderAll(data) {
   }));
   Plotly.newPlot('chart-semturno', tracesTurno, { paper_bgcolor: BG, plot_bgcolor: BG, barmode: 'group', yaxis: { ticksuffix: '%', gridcolor: GRID }, xaxis: { gridcolor: GRID }, legend: { font: { color: TEXT } }, font: { family: fontFamily } });
 
-  // tabla planteles riesgo
   document.getElementById('tabla-planteles').innerHTML = plantelData.slice(0,12).map((d,i) => {
     const riesgo = d.pctVal >= 10 ? 'alto' : d.pctVal >= 5 ? 'medio' : 'bajo';
     const maxPct = plantelData[0]?.pctVal || 1;
@@ -666,7 +577,6 @@ function renderAll(data) {
     return `<tr><td class="rank-num">${i+1}</td><td>${d.name}</td><td>${d.total.toLocaleString()}</td><td>${d.rep.toLocaleString()}</td><td><div class="bar-cell"><div class="mini-bar" style="width:${barW}px;background:${d.pctVal>=10?'var(--danger)':d.pctVal>=5?'var(--warn)':'var(--accent3)'}"></div>${d.pctVal.toFixed(1)}%</div></td><td><span class="pct-badge ${riesgo}">${riesgo==='alto'?'Alto':riesgo==='medio'?'Medio':'Bajo'}</span></td></tr>`;
   }).join('');
 
-  // Gráfico género
   const genGroups = ['1','2'].map(g => {
     const rows = data.filter(r => String(r[COL.genero]) === g);
     const rep = rows.filter(r=>parseFloat(r[COL.final])<6);
@@ -678,14 +588,13 @@ function renderAll(data) {
   }], { paper_bgcolor: BG, plot_bgcolor: BG, margin: { l:20,r:20 }, annotations: [{ text: 'por<br>Género', x:.5,y:.5,showarrow:false,font:{size:12}}], font: { family: fontFamily } });
 }
 
-// EVENTOS Y CARGA INICIAL
 document.addEventListener('DOMContentLoaded', () => {
   const syncBtn = document.getElementById('sync-drive-btn');
   const emptySyncBtn = document.getElementById('empty-sync-btn');
   const syncAction = () => loadDataFromDrive();
   if (syncBtn) syncBtn.addEventListener('click', syncAction);
   if (emptySyncBtn) emptySyncBtn.addEventListener('click', syncAction);
-  loadDataFromDrive(); // carga automática al iniciar
+  loadDataFromDrive();
 });
 </script>
 </body>
