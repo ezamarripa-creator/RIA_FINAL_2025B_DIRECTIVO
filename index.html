@@ -448,7 +448,8 @@ const TEXT = '#8b949e';
 const fontFamily = 'Inter, system-ui, sans-serif';
 
 const DRIVE_FILE_ID = '1Yb_h-pXrG7ocTjRKX1eI51OdWVmbOAE-';
-const DRIVE_URL = `https://drive.google.com/uc?export=download&id=${DRIVE_FILE_ID}`;
+// Google Sheets export URL — permite CORS desde cualquier origen cuando el archivo es público
+const DRIVE_URL = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx&single=true`;
 
 async function syncDrive() {
   const btn      = document.getElementById('sync-btn');
@@ -465,22 +466,7 @@ async function syncDrive() {
   document.querySelector('#loading p').textContent = 'Descargando datos desde Google Drive…';
 
   try {
-    let response = await fetch(DRIVE_URL);
-
-    // Drive puede responder con confirmación HTML para archivos grandes
-    if (response.ok) {
-      const ct = response.headers.get('content-type') || '';
-      if (ct.includes('text/html')) {
-        const html = await response.text();
-        // Extraer URL de confirmación
-        const m = html.match(/href="(\/uc\?export=download[^"]+confirm=[^"]+)"/);
-        const confirmUrl = m
-          ? 'https://drive.google.com' + m[1].replace(/&amp;/g, '&')
-          : DRIVE_URL + '&confirm=t&uuid=' + Date.now();
-        response = await fetch(confirmUrl);
-      }
-    }
-
+    const response = await fetch(DRIVE_URL);
     if (!response.ok) throw new Error(`HTTP ${response.status} — ${response.statusText}`);
 
     const buffer = await response.arrayBuffer();
@@ -505,12 +491,11 @@ async function syncDrive() {
 
   } catch (err) {
     console.error('Sync error:', err);
-    const msg = `No se pudo descargar desde Google Drive: ${err.message}`;
+    document.querySelector('#empty-state h2').textContent = 'No se pudo sincronizar';
+    document.querySelector('#empty-state p').textContent =
+      'Verifica que el archivo esté compartido como "Cualquier persona con el vínculo puede ver".';
     if (errEl) {
-      document.querySelector('#empty-state h2').textContent = 'No se pudo sincronizar';
-      document.querySelector('#empty-state p').textContent =
-        'Verifica que el archivo esté compartido como "Cualquier persona con el vínculo puede ver".';
-      errEl.textContent = msg;
+      errEl.textContent = `Error: ${err.message}`;
       errEl.style.display = 'block';
     }
     if (iconEl) { iconEl.textContent = '❌'; iconEl.classList.remove('spin'); }
