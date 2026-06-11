@@ -355,12 +355,10 @@
 </div>
 
 <script>
-// CONFIGURACIÓN - Usar Google Sheets CSV export (más confiable que Drive directo)
-// El ID del archivo: 1Yb_h-pXrG7ocTjRKX1eI51OdWVmbOAE-
-// Convertimos a URL de exportación CSV pública
+// CONFIGURACIÓN - ID CORREGIDO
 const GOOGLE_SHEETS_ID = "1Yb_h-pXrG7ocTjRKX1eI51OdWVmbOAE-";
-// URL para exportar como CSV (funciona si el archivo está compartido como "Cualquier persona con el enlace puede ver")
-const CSV_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/export?format=csv&gid=0`;
+// Usar el endpoint de exportación con formato CSV (más confiable)
+const CSV_EXPORT_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/gviz/tq?tqx=out:csv`;
 
 let rawData = [];
 let currentDataset = [];
@@ -391,21 +389,51 @@ function showInfo(msg) {
   setTimeout(() => toast.remove(), 3000);
 }
 
-// Cargar CSV desde Google Sheets (sin problemas de CORS)
+// Cargar CSV desde Google Sheets usando el endpoint gviz (más compatible)
 async function loadCSVFromGoogleSheets() {
-  const response = await fetch(CSV_EXPORT_URL);
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} - No se pudo acceder al archivo. Verifica que esté compartido como "Cualquier persona con el enlace puede ver".`);
+  // Intentar primero con el endpoint gviz
+  try {
+    const response = await fetch(CSV_EXPORT_URL);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const csvText = await response.text();
+    // Limpiar posible prefijo de Google (a veces viene con comentarios)
+    let cleanCSV = csvText;
+    if (cleanCSV.startsWith('/*O_o*/')) {
+      cleanCSV = cleanCSV.substring(cleanCSV.indexOf('\n') + 1);
+    }
+    if (cleanCSV.startsWith('google.visualization.Query.setResponse')) {
+      // Si es JSONP, extraer solo el CSV
+      const match = cleanCSV.match(/\"table\"\s*:\s*\{[^}]+\}/);
+      if (match) {
+        throw new Error('Formato no soportado, intentando método alternativo');
+      }
+    }
+    const workbook = XLSX.read(cleanCSV, { type: 'string' });
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: null });
+    if (!jsonData || jsonData.length === 0) {
+      throw new Error("No hay datos en el archivo");
+    }
+    return jsonData;
+  } catch (err) {
+    // Si falla, probar con el método de exportación estándar
+    console.log("Método 1 falló, probando método 2...");
+    const fallbackUrl = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEETS_ID}/export?format=csv&gid=0`;
+    const response = await fetch(fallbackUrl);
+    if (!response.ok) {
+      throw new Error(`No se pudo acceder al archivo (${response.status}). Verifica que esté compartido como "Cualquier persona con el enlace puede ver"`);
+    }
+    const csvText = await response.text();
+    const workbook = XLSX.read(csvText, { type: 'string' });
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: null });
+    if (!jsonData || jsonData.length === 0) {
+      throw new Error("El archivo está vacío o no tiene datos legibles.");
+    }
+    return jsonData;
   }
-  const csvText = await response.text();
-  // Convertir CSV a JSON usando SheetJS
-  const workbook = XLSX.read(csvText, { type: 'string' });
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: null });
-  if (!jsonData || jsonData.length === 0) {
-    throw new Error("El archivo está vacío o no tiene datos legibles.");
-  }
-  return jsonData;
 }
 
 async function loadDataFromDrive() {
