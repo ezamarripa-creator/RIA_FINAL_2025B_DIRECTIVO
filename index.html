@@ -617,7 +617,7 @@ function renderAll(data) {
       rep.length.toLocaleString('es-MX') + ' / ' + valid.length.toLocaleString('es-MX');
   }
 
-  // Chart: reprobación por plantel
+  // Chart: reprobación por plantel (MODIFICADO: eje X muestra porcentaje de reprobación)
   const byPlantel = groupBy(data, COL.plantel);
   const plantelData = Object.entries(byPlantel).map(([name, rows]) => {
     const rep = rows.filter(r => parseFloat(r[COL.final]) < 6).length;
@@ -625,9 +625,10 @@ function renderAll(data) {
   }).sort((a,b) => b.pctVal - a.pctVal);
 
   Plotly.newPlot('chart-plantel', [{
-    type: 'bar', orientation: 'h',
-    y: plantelData.map(d => d.name),
+    type: 'bar',
     x: plantelData.map(d => +d.pctVal.toFixed(2)),
+    y: plantelData.map(d => d.name),
+    orientation: 'h',
     marker: {
       color: plantelData.map(d =>
         d.pctVal >= 10 ? '#f85149' : d.pctVal >= 5 ? '#d29922' : '#3fb950'
