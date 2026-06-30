@@ -711,12 +711,14 @@ function renderAll(data) {
   }, PLOTLY_CONFIG);
 
   // Tabla: Top 10 materias con mayor % de reprobación final
-  const byMateriaTotal = groupBy(data, COL.materia);
-  const byMateriaRep   = groupBy(reprobados, COL.materia);
+  // Se agrupa por clave de materia (única) y se muestra el nombre descriptivo
+  const materiaGroupKey = COL.materiaClave || COL.materia;
+  const byMateriaTotal = groupBy(data, materiaGroupKey);
+  const byMateriaRep   = groupBy(reprobados, materiaGroupKey);
   const materiaTop = Object.entries(byMateriaTotal)
     .map(([key, rows]) => {
       const repRows = byMateriaRep[key] || [];
-      const displayName = (COL.materiaNombre && rows[0][COL.materiaNombre]) || key;
+      const displayName = (COL.materia && rows[0][COL.materia]) || key;
       return {
         name: displayName,
         total: rows.length,
@@ -831,14 +833,24 @@ function groupBy(arr, key) {
 function detectCols(row) {
   const keys = Object.keys(row);
   const find = (...cands) => keys.find(k => cands.some(c => k.toLowerCase().includes(c))) || null;
+  const findExact = (name) => keys.find(k => k.toLowerCase() === name.toLowerCase()) || null;
+
+  // La clave/código de la materia suele venir en una columna tipo "cve_materia"
+  const claveMateria = find('cve_materia','clave_materia','id_materia','cvemateria');
+  // El nombre descriptivo: preferir una columna llamada EXACTAMENTE "materia"
+  // (para no confundirla con "cve_materia"); si no existe, buscar variantes de nombre.
+  const nombreMateria = findExact('materia')
+    || find('nombre_materia','nombre_asignatura','desc_materia','descripcion_materia','asignatura')
+    || find('materia'); // respaldo final si no hay una columna exacta
+
   return {
     plantel:   find('plantel','centro'),
     matricula: find('matricula','matrícula','mat','alumno'),
     semestre:  find('semestre','sem'),
     turno:     find('turno'),
     genero:    find('genero','género','sexo'),
-    materia:   find('materia'),
-    materiaNombre: find('nombre_materia','nombre_asignatura','desc_materia','descripcion_materia','asignatura'),
+    materia:       nombreMateria,
+    materiaClave:  claveMateria,
     cal1:      find('cal_1','cal1','p1','parcial1','parcial_1'),
     cal2:      find('cal_2','cal2','p2','parcial2','parcial_2'),
     cal3:      find('cal_3','cal3','p3','parcial3','parcial_3'),
