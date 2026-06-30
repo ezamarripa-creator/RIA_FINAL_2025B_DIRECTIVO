@@ -666,7 +666,11 @@ function renderAll(data) {
       proyecto: avg(rows, COL.proyecto),
       final: avg(rows, COL.final),
     };
-  }).sort((a, b) => b.pctVal - a.pctVal);
+  }).sort((a, b) => {
+    if (a.final === null) return 1;
+    if (b.final === null) return -1;
+    return b.final - a.final;
+  });
 
   document.getElementById('tabla-plantel-detalle').innerHTML = plantelData.map(d => `
     <tr>
@@ -710,10 +714,11 @@ function renderAll(data) {
   const byMateriaTotal = groupBy(data, COL.materia);
   const byMateriaRep   = groupBy(reprobados, COL.materia);
   const materiaTop = Object.entries(byMateriaTotal)
-    .map(([name, rows]) => {
-      const repRows = byMateriaRep[name] || [];
+    .map(([key, rows]) => {
+      const repRows = byMateriaRep[key] || [];
+      const displayName = (COL.materiaNombre && rows[0][COL.materiaNombre]) || key;
       return {
-        name,
+        name: displayName,
         total: rows.length,
         rep: repRows.length,
         pctVal: rows.length ? repRows.length / rows.length * 100 : 0
@@ -758,13 +763,14 @@ function renderAll(data) {
     font: { family: fontFamily, color: TEXT }
   }, PLOTLY_CONFIG);
 
-  // Tabla planteles
+  // Tabla planteles (ordenada por % de riesgo, independiente del orden por FINAL)
+  const plantelByRiesgo = [...plantelData].sort((a, b) => b.pctVal - a.pctVal);
   const tbody = document.getElementById('tabla-planteles');
-  tbody.innerHTML = plantelData.slice(0, 12).map((d, i) => {
+  tbody.innerHTML = plantelByRiesgo.slice(0, 12).map((d, i) => {
     const pctv = d.pctVal;
     const riesgo = pctv >= 10 ? 'alto' : pctv >= 5 ? 'medio' : 'bajo';
     const rLabel = pctv >= 10 ? 'Alto' : pctv >= 5 ? 'Medio' : 'Bajo';
-    const maxPct = plantelData[0].pctVal;
+    const maxPct = plantelByRiesgo[0].pctVal;
     const barW = Math.round(pctv/maxPct*100);
     return `<tr>
       <td class="rank-num">${i+1}</td>
@@ -832,6 +838,7 @@ function detectCols(row) {
     turno:     find('turno'),
     genero:    find('genero','género','sexo'),
     materia:   find('materia'),
+    materiaNombre: find('nombre_materia','nombre_asignatura','desc_materia','descripcion_materia','asignatura'),
     cal1:      find('cal_1','cal1','p1','parcial1','parcial_1'),
     cal2:      find('cal_2','cal2','p2','parcial2','parcial_2'),
     cal3:      find('cal_3','cal3','p3','parcial3','parcial_3'),
