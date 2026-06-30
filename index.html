@@ -617,7 +617,7 @@ function renderAll(data) {
       rep.length.toLocaleString('es-MX') + ' / ' + valid.length.toLocaleString('es-MX');
   }
 
-  // Chart: reprobación por plantel (MODIFICADO: eje X muestra porcentaje de reprobación)
+  // Chart: reprobación por plantel
   const byPlantel = groupBy(data, COL.plantel);
   const plantelData = Object.entries(byPlantel).map(([name, rows]) => {
     const rep = rows.filter(r => parseFloat(r[COL.final]) < 6).length;
@@ -625,10 +625,9 @@ function renderAll(data) {
   }).sort((a,b) => b.pctVal - a.pctVal);
 
   Plotly.newPlot('chart-plantel', [{
-    type: 'bar',
-    x: plantelData.map(d => +d.pctVal.toFixed(2)),
+    type: 'bar', orientation: 'h',
     y: plantelData.map(d => d.name),
-    orientation: 'h',
+    x: plantelData.map(d => +d.pctVal.toFixed(2)),
     marker: {
       color: plantelData.map(d =>
         d.pctVal >= 10 ? '#f85149' : d.pctVal >= 5 ? '#d29922' : '#3fb950'
@@ -640,8 +639,10 @@ function renderAll(data) {
   }], {
     paper_bgcolor: BG, plot_bgcolor: BG,
     margin: { l: 150, r: 50, t: 10, b: 30 },
-    xaxis: { gridcolor: GRID, color: TEXT, tickfont: { size: 11 }, ticksuffix: '%' },
-    yaxis: { color: TEXT, tickfont: { size: 11 }, automargin: true },
+    xaxis: { gridcolor: GRID, color: TEXT, tickfont: { size: 11 }, ticksuffix: '%', title: { text: '% Reprobación', font: { size: 11 } } },
+    // autorange 'reversed' asegura que el plantel con mayor % de reprobación quede arriba
+    // y el de menor reprobación quede abajo (Plotly dibuja barras horizontales de abajo hacia arriba)
+    yaxis: { color: TEXT, tickfont: { size: 11 }, automargin: true, autorange: 'reversed' },
     font: { family: fontFamily, color: TEXT }
   }, PLOTLY_CONFIG);
 
@@ -671,25 +672,36 @@ function renderAll(data) {
     font: { family: fontFamily, color: TEXT }
   }, PLOTLY_CONFIG);
 
-  // Chart: Top 10 materias reprobadas
-  const byMateria = groupBy(reprobados, COL.materia);
-  const materiaTop = Object.entries(byMateria)
-    .map(([name, rows]) => ({ name, count: rows.length }))
-    .sort((a,b) => b.count - a.count).slice(0, 10);
+  // Chart: Top 10 materias con mayor % de reprobación
+  // Se calcula el % de reprobación por materia (reprobados / total evaluados de esa materia)
+  const byMateriaTotal = groupBy(data, COL.materia);
+  const byMateriaRep   = groupBy(reprobados, COL.materia);
+  const materiaTop = Object.entries(byMateriaTotal)
+    .map(([name, rows]) => {
+      const repRows = byMateriaRep[name] || [];
+      return {
+        name,
+        total: rows.length,
+        rep: repRows.length,
+        pctVal: rows.length ? repRows.length / rows.length * 100 : 0
+      };
+    })
+    .sort((a, b) => b.pctVal - a.pctVal)
+    .slice(0, 10);
 
   Plotly.newPlot('chart-materias', [{
-    type: 'bar', orientation: 'h',
-    y: materiaTop.map(d => d.name),
-    x: materiaTop.map(d => d.count),
+    type: 'bar',
+    x: materiaTop.map(d => d.name),
+    y: materiaTop.map(d => +d.pctVal.toFixed(2)),
     marker: { color: '#d29922' },
-    text: materiaTop.map(d => d.count),
+    text: materiaTop.map(d => d.pctVal.toFixed(1) + '%'),
     textposition: 'outside',
-    hovertemplate: '<b>%{y}</b><br>Reprobados: %{x}<extra></extra>'
+    hovertemplate: '<b>%{x}</b><br>Reprobación: %{y:.1f}%<extra></extra>'
   }], {
     paper_bgcolor: BG, plot_bgcolor: BG,
-    margin: { l: 230, r: 50, t: 10, b: 30 },
-    xaxis: { gridcolor: GRID, color: TEXT, tickfont: { size: 11 } },
-    yaxis: { color: TEXT, tickfont: { size: 11 }, automargin: true },
+    margin: { l: 50, r: 20, t: 10, b: 130 },
+    xaxis: { color: TEXT, tickfont: { size: 10 }, gridcolor: GRID, tickangle: -35, automargin: true },
+    yaxis: { gridcolor: GRID, color: TEXT, tickfont: { size: 11 }, ticksuffix: '%', title: { text: '% Reprobación', font: { size: 11 } } },
     font: { family: fontFamily, color: TEXT }
   }, PLOTLY_CONFIG);
 
